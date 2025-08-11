@@ -1,31 +1,35 @@
-// app/api/summarize/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { summarizeTranscriptText } from "@/lib/summarize";
 import { supabaseAdmin } from "@/lib/supabase";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(req: NextRequest) {
   try {
-    const { transcript, meeting_id, upsert = true } = await req.json();
+    const body = await req.json();
+    const meeting_id: string | undefined = body.meeting_id;
+    const upsert: boolean = body.upsert !== false; // default true
+    let transcript: string = body.transcript?.toString?.() || "";
 
-    let text = transcript?.toString() || "";
-    if (!text && meeting_id) {
+    // If no transcript provided, try fetching from Supabase by meeting_id
+    if (!transcript && meeting_id) {
       const { data, error } = await supabaseAdmin
         .from("meetings")
         .select("transcript_text")
         .eq("id", meeting_id)
         .single();
       if (error) throw error;
-      text = data?.transcript_text || "";
+      transcript = data?.transcript_text || "";
     }
 
-    if (!text) {
+    if (!transcript) {
       return NextResponse.json(
         { ok: false, error: "No transcript provided or found" },
         { status: 400 }
       );
     }
 
-    const summary = await summarizeTranscriptText(text);
+    const summary = await summarizeTranscriptText(transcript);
 
     if (meeting_id && upsert) {
       await supabaseAdmin
@@ -36,6 +40,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, summary });
   } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e.message || "Failed" }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, error: e.message || "Failed" },
+      { status: 500 }
+    );
   }
 }
