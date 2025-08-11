@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { summarizeTranscriptText } from "@/lib/summarize";
-import { supabaseAdmin } from "@/lib/supabase";
+import { summarizeTranscriptText } from "../../../lib/summarize";
+import { supabaseAdmin } from "../../../lib/supabase";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
     const upsert: boolean = body.upsert !== false; // default true
     let transcript: string = body.transcript?.toString?.() || "";
 
-    // If no transcript provided, try fetching from Supabase by meeting_id
+    // If no transcript provided, fetch from Supabase by meeting_id
     if (!transcript && meeting_id) {
       const { data, error } = await supabaseAdmin
         .from("meetings")
@@ -41,8 +41,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, summary });
   } catch (e: any) {
     return NextResponse.json(
-      { ok: false, error: e.message || "Failed" },
-      { status: 500 }
+        { ok: false, error: e.message || "Failed" },
+        { status: 500 }
     );
   }
 }
