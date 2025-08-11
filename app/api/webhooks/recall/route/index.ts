@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { fetchRecallTranscript } from "@/lib/recall";
-import { summarizeTranscriptText } from "@/lib/summarize";
-import { supabaseAdmin, uploadRecordingFromUrl } from "@/lib/supabase";
+import { fetchRecallTranscript } from "../../../../../lib/recall";
+import { summarizeTranscriptText } from "../../../../../lib/summarize";
+import { supabaseAdmin, uploadRecordingFromUrl } from "../../../../../lib/supabase";
 
 export const dynamic = "force-dynamic";
 
@@ -9,9 +9,8 @@ export async function POST(req: NextRequest) {
   try {
     const payload = await req.json();
 
-    // Accept a variety of webhook shapes
-    const eventType: string = payload.type || payload.event || "";
     // Only process on meeting end
+    const eventType: string = payload.type || payload.event || "";
     if (eventType && !/end|ended|finish|finished|complete|completed/i.test(eventType)) {
       return NextResponse.json({ ok: true, skipped: true });
     }
@@ -36,16 +35,13 @@ export async function POST(req: NextRequest) {
       payload.data?.recording_url ||
       "";
 
-    // 1) Get transcript text (from URL or by bot_id)
-    const transcript: string = await fetchRecallTranscript({
-      bot_id,
-      transcript_url,
-    });
+    // 1) Fetch transcript text
+    const transcript: string = await fetchRecallTranscript({ bot_id, transcript_url });
 
-    // 2) Summarize with Grok (via lib/summarize)
+    // 2) Summarize (Grok / OpenAI based on your lib)
     const summary: string = await summarizeTranscriptText(transcript);
 
-    // 3) Persist to Supabase
+    // 3) Save to Supabase
     const { data: meetingRow, error } = await supabaseAdmin
       .from("meetings")
       .insert({
@@ -61,7 +57,7 @@ export async function POST(req: NextRequest) {
 
     if (error) throw error;
 
-    // 4) Optional: copy recording into Supabase Storage and update the row
+    // 4) Optional: copy the recording to Supabase Storage
     if (rawRecordingUrl) {
       try {
         const publicUrl = await uploadRecordingFromUrl(meetingRow.id, rawRecordingUrl);
