@@ -41,8 +41,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, summary });
   } catch (e: any) {
     return NextResponse.json(
-        { ok: false, error: e.message || "Failed" },
-        { status: 500 }
+      { ok: false, error: e.message || "Failed" },
+      { status: 500 }
     );
   }
 }
