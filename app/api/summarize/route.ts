@@ -11,7 +11,6 @@ export async function POST(req: NextRequest) {
     const upsert: boolean = body.upsert !== false; // default true
     let transcript: string = body.transcript?.toString?.() || "";
 
-    // If no transcript provided, fetch from Supabase by meeting_id
     if (!transcript && meeting_id) {
       const { data, error } = await supabaseAdmin
         .from("meetings")
